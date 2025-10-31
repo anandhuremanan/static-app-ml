@@ -11,13 +11,15 @@
       <h1 class="text-2xl font-bold mb-4 text-center text-indigo-600">
         🌸 Iris Classifier
       </h1>
-      <form action="/predict" method="POST" class="space-y-3">
+
+      <form id="predictForm" action="/predict" method="POST" class="space-y-3">
         <input
           type="number"
           step="any"
           name="sepal_length"
           placeholder="Sepal Length"
           class="w-full p-2 border rounded"
+          required
         />
         <input
           type="number"
@@ -25,6 +27,7 @@
           name="sepal_width"
           placeholder="Sepal Width"
           class="w-full p-2 border rounded"
+          required
         />
         <input
           type="number"
@@ -32,6 +35,7 @@
           name="petal_length"
           placeholder="Petal Length"
           class="w-full p-2 border rounded"
+          required
         />
         <input
           type="number"
@@ -39,6 +43,7 @@
           name="petal_width"
           placeholder="Petal Width"
           class="w-full p-2 border rounded"
+          required
         />
         <button
           type="submit"
@@ -48,13 +53,11 @@
         </button>
       </form>
 
-      {% if prediction is defined %}
-      <div class="mt-6 text-center">
-        <p class="text-lg font-semibold text-green-600">
-          Prediction: {{ prediction }}
+      <div id="result" class="mt-6 text-center hidden">
+        <p id="resultText" class="text-lg font-semibold">
+          Prediction: <span id="predictionValue"></span>
         </p>
       </div>
-      {% endif %}
 
       <div class="text-center mt-4">
         <a href="/dashboard" class="text-indigo-600 hover:underline"
@@ -62,5 +65,57 @@
         >
       </div>
     </div>
+
+    <script>
+      const form = document.getElementById("predictForm");
+      const resultDiv = document.getElementById("result");
+      const predictionValue = document.getElementById("predictionValue");
+      const resultText = document.getElementById("resultText");
+
+      const classMap = {
+        0: { name: "Iris setosa", color: "text-blue-600" },
+        1: { name: "Iris versicolor", color: "text-green-600" },
+        2: { name: "Iris virginica", color: "text-purple-600" },
+      };
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault(); // stop default form submission
+
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+          const response = await fetch("/predict", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+          });
+
+          if (!response.ok) {
+            throw new Error("Server error: " + response.status);
+          }
+
+          const result = await response.json();
+          const pred = result.prediction;
+
+          const flower = classMap[pred];
+          if (flower) {
+            predictionValue.textContent = flower.name;
+            resultText.className = `text-lg font-semibold ${flower.color}`;
+          } else {
+            predictionValue.textContent = "Unknown";
+            resultText.className = "text-lg font-semibold text-red-600";
+          }
+
+          resultDiv.classList.remove("hidden");
+        } catch (error) {
+          predictionValue.textContent = error.message;
+          resultDiv.classList.remove("hidden");
+          resultText.className = "text-lg font-semibold text-red-600";
+        }
+      });
+    </script>
   </body>
 </html>
